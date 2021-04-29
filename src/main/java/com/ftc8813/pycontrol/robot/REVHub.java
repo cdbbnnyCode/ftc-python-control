@@ -1,13 +1,17 @@
 package com.ftc8813.pycontrol.robot;
 
 import com.qualcomm.hardware.lynx.LynxAnalogInputController;
+import com.qualcomm.hardware.lynx.LynxCommExceptionHandler;
 import com.qualcomm.hardware.lynx.LynxController;
 import com.qualcomm.hardware.lynx.LynxDcMotorController;
 import com.qualcomm.hardware.lynx.LynxDigitalChannelController;
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch;
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.hardware.lynx.LynxNackException;
 import com.qualcomm.hardware.lynx.LynxServoController;
 import com.qualcomm.hardware.lynx.LynxVoltageSensor;
+import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataCommand;
+import com.qualcomm.hardware.lynx.commands.core.LynxGetBulkInputDataResponse;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import java.lang.reflect.Array;
@@ -17,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class REVHub
+public class REVHub extends LynxCommExceptionHandler
 {
     public final LynxModule module;
     
@@ -26,7 +30,10 @@ public class REVHub
     private LynxDigitalChannelController digitalController;
     private LynxAnalogInputController analogController;
     private LynxVoltageSensor voltageSensor;
-    private List<LynxI2cDeviceSynch> i2cDevices;
+    private final List<LynxI2cDeviceSynch> i2cDevices = new ArrayList<>();
+    
+    // create dummy bulk data in case reading fails
+    private LynxGetBulkInputDataResponse bulkData = new LynxGetBulkInputDataResponse(null);
     
     private static final String TAG = "REV Hub wrapper";
     
@@ -38,7 +45,6 @@ public class REVHub
             Field c = LynxModule.class.getDeclaredField("controllers");
             c.setAccessible(true);
             List<LynxController> controllers = (List<LynxController>)c.get(module);
-            i2cDevices = new ArrayList<>();
     
             for (LynxController controller : controllers)
             {
@@ -111,5 +117,28 @@ public class REVHub
     public List<LynxI2cDeviceSynch> getI2cDevices()
     {
         return Collections.unmodifiableList(i2cDevices);
+    }
+    
+    public int getAddress()
+    {
+        return module.getModuleAddress();
+    }
+    
+    public void bulkRead()
+    {
+        try
+        {
+            LynxGetBulkInputDataCommand cmd = new LynxGetBulkInputDataCommand(module);
+            bulkData = cmd.sendReceive();
+        }
+        catch (InterruptedException | LynxNackException e)
+        {
+            handleException(e);
+        }
+    }
+    
+    public LynxGetBulkInputDataResponse getBulkData()
+    {
+        return bulkData;
     }
 }
