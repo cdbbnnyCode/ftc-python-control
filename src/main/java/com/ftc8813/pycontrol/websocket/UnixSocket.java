@@ -12,7 +12,7 @@ public class UnixSocket extends SocketIO
     
     static
     {
-        System.loadLibrary("junixsocket");
+        System.loadLibrary("socketwrench");
     }
     
     public UnixSocket() throws IOException

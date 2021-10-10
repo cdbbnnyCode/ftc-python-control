@@ -9,7 +9,7 @@ public class UnixSocketServer extends ServerIO
 {
     static
     {
-        System.loadLibrary("junixsocket");
+        System.loadLibrary("socketwrench");
     }
     
     private int fd;
